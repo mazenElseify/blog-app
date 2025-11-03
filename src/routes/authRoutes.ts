@@ -84,7 +84,7 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     const token = jwt.sign(
       { userId: newUser.id, email: newUser.email },
       jwtSecret,
-      { expiresIn: '7d' }
+      { expiresIn: '7d' } as SignOptions
     );
 
     res.status(201).json({
@@ -147,7 +147,7 @@ router.post('/login', loginValidation, async (req: Request, res: Response): Prom
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       jwtSecret,
-      { expiresIn: '7d' }
+      { expiresIn: '7d' } as SignOptions
     );
 
     res.json({
