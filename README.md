@@ -42,7 +42,7 @@ blog-app/
 │   ├── routes/
 │   │   ├── authRoutes.ts        # Authentication routes
 │   │   └── blogRoutes.ts        # Blog CRUD routes
-│   └── index.ts                 # Application entry point
+│   └── app.ts                   # Application entry point
 ├── dist/                        # Compiled JavaScript files
 ├── .env.example                 # Environment variables template
 ├── .gitignore                   # Git ignore rules

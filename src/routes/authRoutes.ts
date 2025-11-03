@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -41,15 +41,16 @@ const loginValidation = [
 ];
 
 // POST /api/v1/auth/register - Register new user
-router.post('/register', registerValidation, async (req: Request, res: Response) => {
+router.post('/register', registerValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'Validation failed',
         errors: errors.array()
       });
+      return;
     }
 
     const { email, password, name } = req.body;
@@ -57,10 +58,11 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     // Check if user already exists
     const existingUser = users.find(user => user.email === email);
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'User with this email already exists'
       });
+      return;
     }
 
     // Hash password
@@ -78,10 +80,11 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     users.push(newUser);
 
     // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const token = jwt.sign(
       { userId: newUser.id, email: newUser.email },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      jwtSecret,
+      { expiresIn: '7d' }
     );
 
     res.status(201).json({
@@ -105,15 +108,16 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
 });
 
 // POST /api/v1/auth/login - Login user
-router.post('/login', loginValidation, async (req: Request, res: Response) => {
+router.post('/login', loginValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'Validation failed',
         errors: errors.array()
       });
+      return;
     }
 
     const { email, password } = req.body;
@@ -121,26 +125,29 @@ router.post('/login', loginValidation, async (req: Request, res: Response) => {
     // Find user
     const user = users.find(u => u.email === email);
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         status: 'error',
         message: 'Invalid email or password'
       });
+      return;
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      res.status(401).json({
         status: 'error',
         message: 'Invalid email or password'
       });
+      return;
     }
-
+        
     // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      jwtSecret,
+      { expiresIn: '7d' }
     );
 
     res.json({
@@ -164,25 +171,28 @@ router.post('/login', loginValidation, async (req: Request, res: Response) => {
 });
 
 // GET /api/v1/auth/me - Get current user info (requires token)
-router.get('/me', async (req: Request, res: Response) => {
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         status: 'error',
         message: 'No token provided'
       });
+      return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, jwtSecret) as any;
     const user = users.find(u => u.id === decoded.userId);
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         status: 'error',
         message: 'Invalid token'
       });
+      return;
     }
 
     res.json({

@@ -67,7 +67,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/v1/blogs/:slug - Get single blog by slug
-router.get('/:slug', async (req: Request, res: Response) => {
+router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   try {
     const blog = await Blog.findOne({ 
       slug: req.params.slug, 
@@ -75,10 +75,11 @@ router.get('/:slug', async (req: Request, res: Response) => {
     });
 
     if (!blog) {
-      return res.status(404).json({
+      res.status(404).json({
         status: 'error',
         message: 'Blog not found'
       });
+      return;
     }
 
     res.json({
@@ -94,15 +95,16 @@ router.get('/:slug', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/blogs - Create new blog
-router.post('/', blogValidation, async (req: Request, res: Response) => {
+router.post('/', blogValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'Validation failed',
         errors: errors.array()
       });
+      return;
     }
 
     const blogData = req.body;
@@ -122,10 +124,11 @@ router.post('/', blogValidation, async (req: Request, res: Response) => {
     });
   } catch (error) {
     if ((error as any).code === 11000) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'A blog with this title already exists'
       });
+      return;
     }
 
     res.status(500).json({
@@ -136,15 +139,16 @@ router.post('/', blogValidation, async (req: Request, res: Response) => {
 });
 
 // PUT /api/v1/blogs/:id - Update blog
-router.put('/:id', blogValidation, async (req: Request, res: Response) => {
+router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         status: 'error',
         message: 'Validation failed',
         errors: errors.array()
       });
+      return;
     }
 
     const blog = await Blog.findByIdAndUpdate(
@@ -154,10 +158,11 @@ router.put('/:id', blogValidation, async (req: Request, res: Response) => {
     );
 
     if (!blog) {
-      return res.status(404).json({
+      res.status(404).json({
         status: 'error',
         message: 'Blog not found'
       });
+      return;
     }
 
     res.json({
@@ -174,15 +179,16 @@ router.put('/:id', blogValidation, async (req: Request, res: Response) => {
 });
 
 // DELETE /api/v1/blogs/:id - Delete blog
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const blog = await Blog.findByIdAndDelete(req.params.id);
 
     if (!blog) {
-      return res.status(404).json({
+      res.status(404).json({
         status: 'error',
         message: 'Blog not found'
       });
+      return;
     }
 
     res.json({

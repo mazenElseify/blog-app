@@ -55,11 +55,17 @@ app.use('*', (req, res) => {
 // Start server
 const startServer = async () => {
   try {
+    // Connect to MongoDB
     await connectDatabase();
+    
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📚 Blog App API available at http://localhost:${PORT}`);
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/v1/auth/register`);
+      console.log(`🔑 Login endpoint: http://localhost:${PORT}/api/v1/auth/login`);
+      console.log(`� Blog endpoints: http://localhost:${PORT}/api/v1/blogs`);
+      console.log('✅ All systems ready!');
     });
   } catch (error) {
     console.error('Failed to start server:', error);
