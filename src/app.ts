@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -33,11 +33,12 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/blogs', blogRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
+app.get('/health', (req: Request, res: Response) => {
+  res.json({
     status: 'OK',
-    message: 'Blog App API is running',
-    timestamp: new Date().toISOString()
+    message: 'Blog API is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
   });
 });
 
@@ -45,7 +46,7 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     status: 'error',
     message: 'Route not found'

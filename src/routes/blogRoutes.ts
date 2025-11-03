@@ -32,8 +32,8 @@ const blogValidation = [
 // GET /api/v1/blogs - Get all published blogs
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt((req.query as any).page as string) || 1;
+    const limit = parseInt((req.query as any).limit as string) || 10;
     const skip = (page - 1) * limit;
 
     const blogs = await Blog.find({ published: true })
