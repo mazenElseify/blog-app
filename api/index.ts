@@ -32,6 +32,32 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/blogs', blogRoutes);
 
+// Welcome route
+app.get('/', (req: express.Request, res: express.Response) => {
+  res.json({
+    message: '🚀 Welcome to Blog API',
+    version: '1.0.0',
+    status: 'active',
+    endpoints: {
+      health: '/health',
+      auth: {
+        register: '/api/v1/auth/register',
+        login: '/api/v1/auth/login',
+        profile: '/api/v1/auth/me'
+      },
+      blogs: {
+        getAll: '/api/v1/blogs',
+        getBySlug: '/api/v1/blogs/:slug',
+        create: 'POST /api/v1/blogs',
+        update: 'PUT /api/v1/blogs/:id',
+        delete: 'DELETE /api/v1/blogs/:id'
+      }
+    },
+    documentation: 'https://github.com/mazenElseify/blog-app',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req: express.Request, res: express.Response) => {
   res.json({
