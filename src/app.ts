@@ -65,7 +65,7 @@ const startServer = async () => {
       console.log(`🏥 Health check: http://localhost:${PORT}/health`);
       console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/v1/auth/register`);
       console.log(`🔑 Login endpoint: http://localhost:${PORT}/api/v1/auth/login`);
-      console.log(`� Blog endpoints: http://localhost:${PORT}/api/v1/blogs`);
+      console.log(`📝 Blog endpoints: http://localhost:${PORT}/api/v1/blogs`);
       console.log('✅ All systems ready!');
     });
   } catch (error) {
@@ -74,6 +74,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Only start server if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
