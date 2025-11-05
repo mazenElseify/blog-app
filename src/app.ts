@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import blogRoutes from './routes/blogRoutes';
 import authRoutes from './routes/authRoutes';
 
+
 // Load environment variables
 dotenv.config();
 
@@ -70,12 +71,14 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    if (!process.env.VERCEL){
+      process.exit(1);
+    }
   }
 };
 
 // Only start server if not in Vercel environment
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+if (!process.env.VERCEL) {
   startServer();
 }
 
