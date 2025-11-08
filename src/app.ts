@@ -58,8 +58,10 @@ app.use('*', (req: Request, res: Response) => {
 const startServer = async () => {
   try {
     // Connect to MongoDB
-    await connectDatabase();
-    
+    if (!process.env.VERCEL) {
+      await connectDatabase();
+    }
+
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📚 Blog App API available at http://localhost:${PORT}`);
