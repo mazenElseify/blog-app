@@ -41,7 +41,7 @@ export default async function handler( req: VercelRequest, res: VercelResponse) 
         timestamp: new Date().toISOString(),
         environment: {
         nodeEnv: process.env.NODE_ENV,
-        hasMongoUri: !!process.env.MONGO_URI,
+        hasMongoUri: !!process.env.MONGODB_URI,
         hasJwtSecret: !!process.env.JWT_SECRET,
         }
 
