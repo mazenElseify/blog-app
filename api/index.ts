@@ -9,9 +9,9 @@ async function connectDB  () {
     return;
   }
   try {
-    const mongoUri = process.env.MONGO_URI;
+    const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
-      throw new Error('MONGO_URI environment variable is required');
+      throw new Error('MONGODB_URI environment variable is required');
     }
     await mongoose.connect(mongoUri, {
       bufferCommands: false,
