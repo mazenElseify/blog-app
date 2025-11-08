@@ -1,51 +1,57 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import mongoose from 'mongoose';
-import { connectDatabase } from '../src/config/database';
 import app from '../src/app';
 
-let cached = (global as any).mongoose;
+let isConnected = false;
 
-const connectDB = async () => {
-  if (cached.conn) {
-    return cached.conn;
-  } 
-  if (!cached) {
-    cached = { conn: null , promise: null};
+async function connectDB  () {
+  if (isConnected) {
+    return;
   }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-    const mongoUri = process.env.MONGODB_URI!;
+  try {
+    const mongoUri = process.env.MONGO_URI;
     if (!mongoUri) {
-      throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+      throw new Error('MONGO_URI environment variable is required');
     }
-
-    cached.promise = mongoose.connect(mongoUri, opts).then((mongoose) => {
-      console.log('MongoDB connected to vercel');
-      return mongoose;
+    await mongoose.connect(mongoUri, {
+      bufferCommands: false,
     });
-  }
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    console.error('MongoDB connection error:', e);
-    throw e;
-}
-  return cached.conn;
-};
+    isConnected = true;
+    console.log('MongoDB connected in vercel');
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    await connectDB();
-    return app(req as any, res as any);
   } catch (error) {
-    console.error('Error in handler:', error);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Internal Server Error'
-    });
+    console.error('MongoDB connection error:', error);
+    throw error;
   }
 }
+export default async function handler( req: VercelRequest, res: VercelResponse) {
+  try {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
+    await connectDB();
+    if (req.url === '/health') {
+      return res.status(200).json({
+        status: 'OK',
+        message: 'Blog API is running',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      });
+    } 
+    const {default: app} = await import('../src/app');
+
+    return app( req as any, res as any);
+  } catch (error) {
+    console.error("Error in Vercel handler:", error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+  // app(req as any, res as any);
+}
+
+
+
