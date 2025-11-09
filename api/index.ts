@@ -1,8 +1,10 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import mongoose from 'mongoose';
 // import app from '../src/app';
+import express from 'express';
 
 let isConnected = false;
+let app: express.Express | null = null;
 
 async function connectDB  () {
   if (isConnected) {
@@ -11,7 +13,7 @@ async function connectDB  () {
   try {
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
-      throw new Error('MONGODB_URI environment variable is required');
+      throw new Error('MONGOD_URI environment variable is required');
     }
     await mongoose.connect(mongoUri, {
       bufferCommands: false,
@@ -24,6 +26,14 @@ async function connectDB  () {
     throw error;
   }
 }
+
+async function getApp() {
+  if (!app) {
+    const { default: importedApp } = await import('../src/app');
+    app = importedApp;
+  }
+  return app;
+} 
 export default async function handler( req: VercelRequest, res: VercelResponse) {
   try {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -49,9 +59,9 @@ export default async function handler( req: VercelRequest, res: VercelResponse) 
       });
     } 
 
-    const {default: app} = await import('../src/app');
-    return app( req as any, res as any);
 
+    const expressApp = await getApp();
+    return expressApp(req as any, res as any);
     // return res.status(200).json({
     //   status: 'info',
     //   message: 'Route handler working',
