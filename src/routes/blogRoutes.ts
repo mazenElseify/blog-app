@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 import { Blog, IBlog } from '../models/Blog';
 
 const router = express.Router();
@@ -151,8 +152,28 @@ router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<
       return;
     }
 
+    const { id } = req.params;
+    
+    // Check if ID exists
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Blog ID is required'
+      });
+      return;
+    }
+    
+    // Enhanced ObjectId validation
+    if (!mongoose.Types.ObjectId.isValid(id) || id.length !== 24) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid blog ID format'
+      });
+      return;
+    }
+
     const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       { new: true, runValidators: true }
     );
@@ -171,9 +192,26 @@ router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<
       data: { blog }
     });
   } catch (error) {
+    console.error('Error updating blog:', {
+      error: error instanceof Error ? error.message : error,
+      blogId: req.params.id
+    });
+    
+    // Handle specific Mongoose CastError
+    if (error instanceof Error && error.name === 'CastError') {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid blog ID format'
+      });
+      return;
+    }
+    
     res.status(500).json({
       status: 'error',
-      message: 'Failed to update blog'
+      message: 'Failed to update blog',
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
     });
   }
 });
@@ -181,9 +219,32 @@ router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<
 // DELETE /api/v1/blogs/:id - Delete blog
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const blog = await Blog.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    
+    // Check if ID exists
+    if (!id) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Blog ID is required'
+      });
+      return;
+    }
+    
+    // Enhanced ObjectId validation
+    if (!mongoose.Types.ObjectId.isValid(id) || id.length !== 24) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid blog ID format'
+      });
+      return;
+    }
+
+    console.log(`Attempting to delete blog with ID: ${id}`);
+    
+    const blog = await Blog.findByIdAndDelete(id);
 
     if (!blog) {
+      console.log(`Blog not found with ID: ${id}`);
       res.status(404).json({
         status: 'error',
         message: 'Blog not found'
@@ -191,14 +252,39 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    console.log(`Blog deleted successfully: ${blog.title} (ID: ${id})`);
     res.json({
       status: 'success',
-      message: 'Blog deleted successfully'
+      message: 'Blog deleted successfully',
+      data: {
+        deletedBlog: {
+          id: blog._id,
+          title: blog.title
+        }
+      }
     });
   } catch (error) {
+    console.error('Error deleting blog:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      blogId: req.params.id
+    });
+    
+    // Handle specific Mongoose CastError
+    if (error instanceof Error && error.name === 'CastError') {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid blog ID format'
+      });
+      return;
+    }
+    
     res.status(500).json({
       status: 'error',
-      message: 'Failed to delete blog'
+      message: 'Failed to delete blog',
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
     });
   }
 });
