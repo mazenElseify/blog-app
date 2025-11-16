@@ -40,6 +40,7 @@ export default async function handler( req: VercelRequest, res: VercelResponse) 
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:5174', // Vite dev server alternative port
       'http://localhost:3001',
       'http://localhost:8080',
       'https://blog-app-amber-three.vercel.app',

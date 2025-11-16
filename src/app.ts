@@ -22,6 +22,7 @@ app.use(helmet());
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173', // Vite dev server
+  'http://localhost:5174', // Vite dev server (alternative port)
   'http://localhost:3001',
   'http://localhost:8080',
   'https://blog-app-amber-three.vercel.app' // Vercel production domain (no trailing slash)
