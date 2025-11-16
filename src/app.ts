@@ -17,8 +17,25 @@ const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
+
+// Configure allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173', // Vite dev server
+  'http://localhost:3001',
+  'http://localhost:8080'
+];
+
+// Add environment-specific origins if they exist
+if (process.env.CORS_ORIGIN) {
+  allowedOrigins.push(process.env.CORS_ORIGIN);
+}
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true
 }));
 

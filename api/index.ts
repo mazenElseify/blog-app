@@ -36,9 +36,27 @@ async function getApp() {
 } 
 export default async function handler( req: VercelRequest, res: VercelResponse) {
   try {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Configure CORS headers
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      process.env.CORS_ORIGIN,
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      // For requests without origin header (e.g., Postman, mobile apps)
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
