@@ -2,18 +2,10 @@ import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { User } from '../models/User';
 
 const router = express.Router();
 
-// Mock user storage (replace with database in production)
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-}
-
-const users: User[] = [];
 
 // Validation middleware
 const registerValidation = [
@@ -56,7 +48,7 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     const { email, password, name } = req.body;
 
     // Check if user already exists
-    const existingUser = users.find(user => user.email === email);
+    const existingUser = await User.findOne( { email } );
     if (existingUser) {
       res.status(400).json({
         status: 'error',
@@ -70,14 +62,12 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create new user
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      password: hashedPassword,
-      name
-    };
-
-    users.push(newUser);
+   const newUser = new User({
+    email,
+    password: hashedPassword,
+    name
+   });
+   await newUser.save(); 
 
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
@@ -123,7 +113,7 @@ router.post('/login', loginValidation, async (req: Request, res: Response): Prom
     const { email, password } = req.body;
 
     // Find user
-    const user = users.find(u => u.email === email);
+    const user = await User.findOne( { email });
     if (!user) {
       res.status(401).json({
         status: 'error',
@@ -145,9 +135,9 @@ router.post('/login', loginValidation, async (req: Request, res: Response): Prom
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user._id, email: user.email },
       jwtSecret,
-      { expiresIn: '7d' } as SignOptions
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as SignOptions
     );
 
     res.json({
@@ -185,7 +175,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
 
     const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
     const decoded = jwt.verify(token, jwtSecret) as any;
-    const user = users.find(u => u.id === decoded.userId);
+    const user = await User.findById( decoded.userId );
 
     if (!user) {
       res.status(401).json({
