@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 import { Blog, IBlog } from '../models/Blog';
+import { upload, uploadToCloudinary} from '../middleware/uploadMiddleware';
 
 const router = express.Router();
 
@@ -96,7 +97,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /api/v1/blogs - Create new blog
-router.post('/', blogValidation, async (req: Request, res: Response): Promise<void> => {
+router.post('/', upload.single('image'), async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -108,20 +109,33 @@ router.post('/', blogValidation, async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const blogData = req.body;
+    const {title, content, author, tags, published } = req.body;
+    let imageUrl = '';
+    // Handle image upload if file is provided    
+    if (req.file) {
+      imageUrl = await uploadToCloudinary(req.file.buffer);
+    }
     
     // Generate excerpt if not provided
-    if (!blogData.excerpt && blogData.content) {
-      blogData.excerpt = blogData.content.substring(0, 200) + '...';
-    }
+    const excerpt = req.body.excerpt || content.subString(0, 200) + '...';
 
-    const blog = new Blog(blogData);
-    await blog.save();
+
+
+    const blog = new Blog({
+      title,
+      content,
+      author,
+      image: imageUrl,
+      excerpt,
+      tags: tags ? JSON.parse(tags) : [],
+      published: published ? JSON.parse(published) : false
+    });
+    const savedBlog = await blog.save();
 
     res.status(201).json({
       status: 'success',
       message: 'Blog created successfully',
-      data: { blog }
+      data: { blog: savedBlog }
     });
   } catch (error) {
     if ((error as any).code === 11000) {
@@ -140,7 +154,7 @@ router.post('/', blogValidation, async (req: Request, res: Response): Promise<vo
 });
 
 // PUT /api/v1/blogs/:id - Update blog
-router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<void> => {
+router.put('/:id', upload.single('image'), async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -172,9 +186,21 @@ router.put('/:id', blogValidation, async (req: Request, res: Response): Promise<
       return;
     }
 
+    const { title, content, author, tags, published, excerpt } = req.body;
+    const updateData: any = { title, content, author };
+
+    if (excerpt) updateData.excerpt = excerpt;
+    if (tags) updateData.tags = JSON.parse(tags);
+    if (published !== undefined) updateData.published = typeof published === 'string' ? JSON.parse(published) : published;
+
+    if (req.file) {
+      const imageUrl = await uploadToCloudinary(req.file.buffer);
+      updateData.image = imageUrl;
+    }
+
     const blog = await Blog.findByIdAndUpdate(
       id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 

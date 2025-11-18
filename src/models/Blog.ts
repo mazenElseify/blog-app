@@ -12,6 +12,7 @@ export interface IBlog extends Document {
   slug: string;
   excerpt?: string;
   readTime?: number;
+  image?: string;
 }
 
 const blogSchema = new Schema<IBlog>({
@@ -20,6 +21,10 @@ const blogSchema = new Schema<IBlog>({
     required: [true, 'Blog title is required'],
     trim: true,
     maxlength: [200, 'Title cannot exceed 200 characters']
+  },
+  image: {
+    type: String,
+    required: false // Make it optional
   },
   content: {
     type: String,
