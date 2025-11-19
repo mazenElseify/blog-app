@@ -150,11 +150,12 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
       content,
       author,
       image: imageUrl,
-      excerpt,
+      excerpt: content.substring(0,200) + '...',
       tags: parsedTags,
       published: parsedPublished
     });
     const savedBlog = await blog.save();
+    console.log('Blog saved:', savedBlog._id);
 
     res.status(201).json({
       status: 'success',
