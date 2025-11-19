@@ -113,11 +113,35 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
     let imageUrl = '';
     // Handle image upload if file is provided    
     if (req.file) {
-      imageUrl = await uploadToCloudinary(req.file.buffer);
+      console.log(' File uploaded:', req.file.originalname);
+      try{
+        imageUrl = await uploadToCloudinary(req.file.buffer);
+        console.log('Image uploaded to Cloudinary:', imageUrl);
+      } catch (uploadError) {
+        console.error('Error uploading image to Cloudinary:', uploadError);
+        throw new Error(' Image upload failed');
+      }
     }
     
     // Generate excerpt if not provided
     const excerpt = req.body.excerpt || (content ? content.substring(0, 200) + '...' : 'No excerpt available');
+
+    let parsedTags = [];
+    let parsedPublished = false;
+    try {
+      parsedTags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [];
+    } catch (e) {
+      console.log('Tags parsing failed, using empty array');
+      parsedTags = [];
+    }
+    try {
+      parsedPublished = published ? (typeof published === 'string' ? JSON.parse(published) : published) : false;
+    } catch (e) {
+      console.log('published parsed failed, using false');
+      parsedPublished = false;
+    }
+
+      
 
 
 
@@ -127,8 +151,8 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
       author,
       image: imageUrl,
       excerpt,
-      tags: tags ? JSON.parse(tags) : [],
-      published: published ? JSON.parse(published) : false
+      tags: parsedTags,
+      published: parsedPublished
     });
     const savedBlog = await blog.save();
 
@@ -138,6 +162,16 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
       data: { blog: savedBlog }
     });
   } catch (error) {
+    console.error('Error creating blog:');
+    console.error('Error message:', (error as Error).message);
+    console.error('Error stack:', (error as Error).message);
+    console.log('Request body:', req.body);
+    console.log('Request file:' , req.file ? {
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    } : 'No file uploaded');
+
     if ((error as any).code === 11000) {
       res.status(400).json({
         status: 'error',
