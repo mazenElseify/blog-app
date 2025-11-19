@@ -97,7 +97,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /api/v1/blogs - Create new blog
-router.post('/', upload.single('image'), async (req: Request, res: Response): Promise<void> => {
+router.post('/', upload.single('image'),blogValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -117,7 +117,7 @@ router.post('/', upload.single('image'), async (req: Request, res: Response): Pr
     }
     
     // Generate excerpt if not provided
-    const excerpt = req.body.excerpt || content.subString(0, 200) + '...';
+    const excerpt = req.body.excerpt || (content ? content.substring(0, 200) + '...' : 'No excerpt available');
 
 
 
