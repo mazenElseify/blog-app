@@ -96,6 +96,50 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// TEMP - Simple blog creation without image upload
+router.post('/simple', async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('🧪 SIMPLE ENDPOINT - No image upload');
+    console.log('Request body:', req.body);
+
+    const { title, content, author } = req.body;
+
+    if (!title || !content || !author) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Title, content, and author are required'
+      });
+      return;
+    }
+
+    const blog = new Blog({
+      title,
+      content,
+      author,
+      image: '', // No image
+      excerpt: content ? content.substring(0, 200) + '...' : '',
+      tags: [],
+      published: false
+    });
+
+    const savedBlog = await blog.save();
+    console.log('✅ Simple blog saved:', savedBlog._id);
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Simple blog created successfully',
+      data: { blog: savedBlog }
+    });
+  } catch (error) {
+    console.error('❌ Simple endpoint error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Simple blog creation failed',
+      error: (error as Error).message
+    });
+  }
+});
+
 // TEST endpoint to debug issues
 router.post('/test', async (req: Request, res: Response): Promise<void> => {
   try {
