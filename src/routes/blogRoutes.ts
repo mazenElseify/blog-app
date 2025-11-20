@@ -98,64 +98,73 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
 
 // POST /api/v1/blogs - Create new blog
 router.post('/', upload.single('image'),blogValidation, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        status: 'error',
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-      return;
-    }
+  // Add at the top of your POST route
+try{
+  console.log('🔧 Environment check:', {
+  cloudinary_name: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Set' : '❌ Missing',
+  cloudinary_key: process.env.CLOUDINARY_API_KEY ? '✅ Set' : '❌ Missing',
+  cloudinary_secret: process.env.CLOUDINARY_API_SECRET ? '✅ Set' : '❌ Missing',
+  mongodb_uri: process.env.MONGODB_URI ? '✅ Set' : '❌ Missing'
+});
+  
+const errors = validationResult(req);
+if (!errors.isEmpty()) {
+  res.status(400).json({
+    status: 'error',
+    message: 'Validation failed',
+    errors: errors.array()
+  });
+  return;
+}
 
-    const {title, content, author, tags, published } = req.body;
+    const {title, content, author } = req.body;
+
+    console.log('✅ Validation passed');
+    console.log('🔄 Processing image...');
+
     let imageUrl = '';
     // Handle image upload if file is provided    
     if (req.file) {
       console.log(' File uploaded:', req.file.originalname);
       try{
         imageUrl = await uploadToCloudinary(req.file.buffer);
-        console.log('Image uploaded to Cloudinary:', imageUrl);
-      } catch (uploadError) {
-        console.error('Error uploading image to Cloudinary:', uploadError);
-        throw new Error(' Image upload failed');
+        console.log('✅Image uploaded to Cloudinary:', imageUrl);
+      } catch (cloudinaryError) {
+        console.error('❌Error uploading image to Cloudinary:', cloudinaryError);
+        throw cloudinaryError;
       }
     }
+    console.log(" Saving to database...");
     
     // Generate excerpt if not provided
-    const excerpt = req.body.excerpt || (content ? content.substring(0, 200) + '...' : 'No excerpt available');
+    // const excerpt = req.body.excerpt || (content ? content.substring(0, 200) + '...' : 'No excerpt available');
 
-    let parsedTags = [];
-    let parsedPublished = false;
-    try {
-      parsedTags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [];
-    } catch (e) {
-      console.log('Tags parsing failed, using empty array');
-      parsedTags = [];
-    }
-    try {
-      parsedPublished = published ? (typeof published === 'string' ? JSON.parse(published) : published) : false;
-    } catch (e) {
-      console.log('published parsed failed, using false');
-      parsedPublished = false;
-    }
-
-      
-
-
+    // let parsedTags = [];
+    // let parsedPublished = false;
+    // try {
+    //   parsedTags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [];
+    // } catch (e) {
+    //   console.log('Tags parsing failed, using empty array');
+    //   parsedTags = [];
+    // }
+    // try {
+    //   parsedPublished = published ? (typeof published === 'string' ? JSON.parse(published) : published) : false;
+    // } catch (e) {
+    //   console.log('published parsed failed, using false');
+    //   parsedPublished = false;
+    // }
 
     const blog = new Blog({
       title,
       content,
       author,
       image: imageUrl,
-      excerpt: content.substring(0,200) + '...',
-      tags: parsedTags,
-      published: parsedPublished
+      excerpt: content ? content.substring(0,200) + '...' : '',
+      tags: [],
+      published: false
     });
     const savedBlog = await blog.save();
-    console.log('Blog saved:', savedBlog._id);
+    console.log('✅ Blog saved:', savedBlog._id);
 
     res.status(201).json({
       status: 'success',
@@ -164,8 +173,9 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
     });
   } catch (error) {
     console.error('Error creating blog:');
+    console.error('Error name:', (error as Error).name);
     console.error('Error message:', (error as Error).message);
-    console.error('Error stack:', (error as Error).message);
+    console.error('Error stack:', (error as Error).stack);
     console.log('Request body:', req.body);
     console.log('Request file:' , req.file ? {
       filename: req.file.originalname,
@@ -183,13 +193,14 @@ router.post('/', upload.single('image'),blogValidation, async (req: Request, res
 
     res.status(500).json({
       status: 'error',
-      message: 'Failed to create blog'
+      message: 'Failed to create blog',
+      debug: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined  
     });
   }
 });
 
 // PUT /api/v1/blogs/:id - Update blog
-router.put('/:id', upload.single('image'), async (req: Request, res: Response): Promise<void> => {
+router.put('/:id', upload.single('image'), blogValidation, async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -225,7 +236,17 @@ router.put('/:id', upload.single('image'), async (req: Request, res: Response): 
     const updateData: any = { title, content, author };
 
     if (excerpt) updateData.excerpt = excerpt;
-    if (tags) updateData.tags = JSON.parse(tags);
+    
+    // Safe tags parsing
+    if (tags) {
+      try {
+        updateData.tags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+      } catch (e) {
+        console.log('Tags parsing failed, using empty array');
+        updateData.tags = [];
+      }
+    }
+    
     if (published !== undefined) updateData.published = typeof published === 'string' ? JSON.parse(published) : published;
 
     if (req.file) {
