@@ -112,10 +112,19 @@ router.post('/simple', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Generate slug manually as backup
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .trim()
+      .replace(/^-+|-+$/g, '') || 'blog-post';
+
     const blog = new Blog({
       title,
       content,
       author,
+      slug, // Explicitly set slug
       image: '', // No image
       excerpt: content ? content.substring(0, 200) + '...' : '',
       tags: [],

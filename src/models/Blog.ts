@@ -51,7 +51,7 @@ const blogSchema = new Schema<IBlog>({
   },
   slug: {
     type: String,
-    required: true,
+    required: false, // Let middleware handle this
     unique: true,
     trim: true,
     lowercase: true
@@ -76,21 +76,33 @@ blogSchema.index({ author: 1 });
 
 // Pre-save middleware to generate slug and calculate read time
 blogSchema.pre('save', function(next) {
-  // Generate slug if it doesn't exist or if title is modified
+  // Always generate slug for new documents or when title changes
   if (this.isNew || this.isModified('title') || !this.slug) {
-    this.slug = this.title
+    // Create slug from title
+    let baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-zA-Z0-9\s]/g, '')
       .replace(/\s+/g, '-')
       .trim();
+    
+    // Remove any leading/trailing dashes
+    baseSlug = baseSlug.replace(/^-+|-+$/g, '');
+    
+    // Ensure slug is not empty
+    if (!baseSlug) {
+      baseSlug = 'blog-post';
+    }
+    
+    this.slug = baseSlug;
   }
 
+  // Calculate read time
   if (this.isModified('content')) {
-    // Calculate read time (average 200 words per minute)
     const wordCount = this.content.split(/\s+/).length;
     this.readTime = Math.ceil(wordCount / 200);
   }
 
+  // Set published date
   if (this.published && !this.publishedAt) {
     this.publishedAt = new Date();
   }
