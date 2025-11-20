@@ -76,7 +76,8 @@ blogSchema.index({ author: 1 });
 
 // Pre-save middleware to generate slug and calculate read time
 blogSchema.pre('save', function(next) {
-  if (this.isModified('title')) {
+  // Generate slug if it doesn't exist or if title is modified
+  if (this.isNew || this.isModified('title') || !this.slug) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-zA-Z0-9\s]/g, '')
