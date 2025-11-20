@@ -96,6 +96,31 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// TEST endpoint to debug issues
+router.post('/test', async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('🧪 TEST ENDPOINT - Received request');
+    console.log('Request body:', req.body);
+    console.log('Request headers:', req.headers);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Test endpoint working',
+      data: {
+        body: req.body,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Test endpoint error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Test endpoint failed',
+      error: (error as Error).message
+    });
+  }
+});
+
 // POST /api/v1/blogs - Create new blog
 router.post('/', upload.single('image'),blogValidation, async (req: Request, res: Response): Promise<void> => {
   // Add at the top of your POST route
