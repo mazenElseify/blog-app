@@ -31,21 +31,35 @@ const blogValidation = [
     .withMessage('Published must be a boolean')
 ];
 
-// GET /api/v1/blogs - Get all published blogs
+// GET /api/v1/blogs - Get all blogs with pagination
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const page = parseInt((req.query as any).page as string) || 1;
-    const limit = parseInt((req.query as any).limit as string) || 10;
+    const limit = parseInt((req.query as any).limit as string) || 20; // Default 20 blogs per page
     const skip = (page - 1) * limit;
+    
+    // Query parameters
+    const showAll = (req.query as any).all === 'true'; // ?all=true to show all blogs
+    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
+    
+    // Build filter
+    const filter: any = {};
+    if (!showAll && publishedOnly) {
+      filter.published = true;
+    }
 
-    const blogs = await Blog.find({ published: true })
-      .select('title excerpt author tags publishedAt readTime slug')
-      .sort({ publishedAt: -1 })
+    console.log('📚 Fetching blogs with filter:', filter, 'Page:', page, 'Limit:', limit);
+
+    const blogs = await Blog.find(filter)
+      .select('title excerpt author tags publishedAt createdAt readTime slug image published') // Include image and all necessary fields
+      .sort({ createdAt: -1 }) // Sort by creation date (newest first)
       .skip(skip)
       .limit(limit);
 
-    const total = await Blog.countDocuments({ published: true });
+    const total = await Blog.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
+
+    console.log(`✅ Found ${blogs.length} blogs (${total} total)`);
 
     res.json({
       status: 'success',
@@ -55,15 +69,57 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           currentPage: page,
           totalPages,
           totalBlogs: total,
+          blogsPerPage: limit,
           hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
+          hasPrevPage: page > 1,
+          nextPage: page < totalPages ? page + 1 : null,
+          prevPage: page > 1 ? page - 1 : null
+        },
+        meta: {
+          filter: showAll ? 'all' : 'published-only',
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
         }
       }
     });
   } catch (error) {
+    console.error('❌ Error fetching blogs:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch blogs'
+    });
+  }
+});
+
+// GET /api/v1/blogs/all - Get ALL blogs without pagination
+router.get('/all', async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('📚 Fetching ALL blogs without pagination');
+
+    const blogs = await Blog.find({})
+      .select('title excerpt author tags publishedAt createdAt readTime slug image published')
+      .sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${blogs.length} total blogs`);
+
+    res.json({
+      status: 'success',
+      data: {
+        blogs,
+        total: blogs.length,
+        meta: {
+          filter: 'all',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          pagination: false
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching all blogs:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch all blogs'
     });
   }
 });
