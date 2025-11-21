@@ -124,6 +124,32 @@ router.get('/all', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+  try{
+    const blog = await Blog.findOne({
+      _id: req.params.id,
+    });
+
+    if (!blog) {
+      res.status(404).json({
+        status: 'error',
+        message: 'Blog not found'
+      });
+      return;
+    }
+
+    res.json({
+      status: 'success',
+      data: { blog }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch blog'
+    });
+  }
+});
+
 // GET /api/v1/blogs/:slug - Get single blog by slug
 router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   try {
