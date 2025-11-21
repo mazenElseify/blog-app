@@ -153,27 +153,45 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // GET /api/v1/blogs/:slug - Get single blog by slug
 router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   try {
-    const blog = await Blog.findOne({ 
-      slug: req.params.slug, 
-      published: true 
-    });
+    const { slug } = req.params;
+    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
+    
+    console.log(`🔍 Looking for blog with slug: "${slug}", publishedOnly: ${publishedOnly}`);
+
+    // Build filter based on query parameters
+    const filter: any = { slug };
+    if (publishedOnly) {
+      filter.published = true;
+    }
+
+    const blog = await Blog.findOne(filter);
 
     if (!blog) {
+      console.log(`❌ Blog not found with slug: "${slug}" and filter:`, filter);
       res.status(404).json({
         status: 'error',
-        message: 'Blog not found'
+        message: 'Blog not found',
+        debug: {
+          slug,
+          publishedOnly,
+          filter
+        }
       });
       return;
     }
 
+    console.log(`✅ Blog found: "${blog.title}" (ID: ${blog._id})`);
     res.json({
       status: 'success',
       data: { blog }
     });
   } catch (error) {
+    console.error('❌ Error fetching blog by slug:', error);
+    console.error('Slug:', req.params.slug);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to fetch blog'
+      message: 'Failed to fetch blog',
+      debug: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
