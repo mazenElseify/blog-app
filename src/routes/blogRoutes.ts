@@ -31,65 +31,7 @@ const blogValidation = [
     .withMessage('Published must be a boolean')
 ];
 
-// GET /api/v1/blogs - Get all blogs with pagination
-router.get('/', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const page = parseInt((req.query as any).page as string) || 1;
-    const limit = parseInt((req.query as any).limit as string) || 20; // Default 20 blogs per page
-    const skip = (page - 1) * limit;
-    
-    // Query parameters
-    const showAll = (req.query as any).all === 'true'; // ?all=true to show all blogs
-    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
-    
-    // Build filter
-    const filter: any = {};
-    if (!showAll && publishedOnly) {
-      filter.published = true;
-    }
-
-    console.log('📚 Fetching blogs with filter:', filter, 'Page:', page, 'Limit:', limit);
-
-    const blogs = await Blog.find(filter)
-      .select('title excerpt author tags publishedAt createdAt readTime slug image published') // Include image and all necessary fields
-      .sort({ createdAt: -1 }) // Sort by creation date (newest first)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Blog.countDocuments(filter);
-    const totalPages = Math.ceil(total / limit);
-
-    console.log(`✅ Found ${blogs.length} blogs (${total} total)`);
-
-    res.json({
-      status: 'success',
-      data: {
-        blogs,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalBlogs: total,
-          blogsPerPage: limit,
-          hasNextPage: page < totalPages,
-          hasPrevPage: page > 1,
-          nextPage: page < totalPages ? page + 1 : null,
-          prevPage: page > 1 ? page - 1 : null
-        },
-        meta: {
-          filter: showAll ? 'all' : 'published-only',
-          sortBy: 'createdAt',
-          sortOrder: 'desc'
-        }
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching blogs:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch blogs'
-    });
-  }
-});
+// SPECIFIC ROUTES FIRST (before dynamic /:slug)
 
 // GET /api/v1/blogs/all - Get ALL blogs without pagination
 router.get('/all', async (req: Request, res: Response): Promise<void> => {
@@ -120,78 +62,6 @@ router.get('/all', async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch all blogs'
-    });
-  }
-});
-
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
-  try{
-    const blog = await Blog.findOne({
-      _id: req.params.id,
-    });
-
-    if (!blog) {
-      res.status(404).json({
-        status: 'error',
-        message: 'Blog not found'
-      });
-      return;
-    }
-
-    res.json({
-      status: 'success',
-      data: { blog }
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch blog'
-    });
-  }
-});
-
-// GET /api/v1/blogs/:slug - Get single blog by slug
-router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { slug } = req.params;
-    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
-    
-    console.log(`🔍 Looking for blog with slug: "${slug}", publishedOnly: ${publishedOnly}`);
-
-    // Build filter based on query parameters
-    const filter: any = { slug };
-    if (publishedOnly) {
-      filter.published = true;
-    }
-
-    const blog = await Blog.findOne(filter);
-
-    if (!blog) {
-      console.log(`❌ Blog not found with slug: "${slug}" and filter:`, filter);
-      res.status(404).json({
-        status: 'error',
-        message: 'Blog not found',
-        debug: {
-          slug,
-          publishedOnly,
-          filter
-        }
-      });
-      return;
-    }
-
-    console.log(`✅ Blog found: "${blog.title}" (ID: ${blog._id})`);
-    res.json({
-      status: 'success',
-      data: { blog }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching blog by slug:', error);
-    console.error('Slug:', req.params.slug);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch blog',
-      debug: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
@@ -274,6 +144,125 @@ router.post('/test', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// GET /api/v1/blogs - Get all blogs with pagination (before /:slug)
+router.get('/', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const page = parseInt((req.query as any).page as string) || 1;
+    const limit = parseInt((req.query as any).limit as string) || 20; // Default 20 blogs per page
+    const skip = (page - 1) * limit;
+    
+    // Query parameters
+    const showAll = (req.query as any).all === 'true'; // ?all=true to show all blogs
+    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
+    
+    // Build filter
+    const filter: any = {};
+    if (!showAll && publishedOnly) {
+      filter.published = true;
+    }
+
+    console.log('📚 Fetching blogs with filter:', filter, 'Page:', page, 'Limit:', limit);
+
+    const blogs = await Blog.find(filter)
+      .select('title excerpt author tags publishedAt createdAt readTime slug image published') // Include image and all necessary fields
+      .sort({ createdAt: -1 }) // Sort by creation date (newest first)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Blog.countDocuments(filter);
+    const totalPages = Math.ceil(total / limit);
+
+    console.log(`✅ Found ${blogs.length} blogs (${total} total)`);
+
+    res.json({
+      status: 'success',
+      data: {
+        blogs,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalBlogs: total,
+          blogsPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+          nextPage: page < totalPages ? page + 1 : null,
+          prevPage: page > 1 ? page - 1 : null
+        },
+        meta: {
+          filter: showAll ? 'all' : 'published-only',
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching blogs:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch blogs'
+    });
+  }
+});
+
+// GET /api/v1/blogs/:slugOrId - Get single blog by slug OR ID (LAST - after all specific routes)
+router.get('/:slugOrId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { slugOrId } = req.params;
+    const publishedOnly = (req.query as any).published !== 'false'; // Default to published only
+    
+    console.log(`🔍 Looking for blog with slugOrId: "${slugOrId}", publishedOnly: ${publishedOnly}`);
+
+    // Determine if the parameter is an ObjectId or a slug
+    const isObjectId = slugOrId && mongoose.Types.ObjectId.isValid(slugOrId) && slugOrId.length === 24;
+    
+    // Build filter based on whether it's ID or slug
+    let filter: any = {};
+    if (isObjectId) {
+      filter._id = slugOrId;
+      console.log(`📋 Searching by ID: ${slugOrId}`);
+    } else {
+      filter.slug = slugOrId;
+      console.log(`🏷️ Searching by slug: ${slugOrId}`);
+    }
+    
+    // Add published filter if needed
+    if (publishedOnly) {
+      filter.published = true;
+    }
+
+    const blog = await Blog.findOne(filter);
+
+    if (!blog) {
+      console.log(`❌ Blog not found with ${isObjectId ? 'ID' : 'slug'}: "${slugOrId}" and filter:`, filter);
+      res.status(404).json({
+        status: 'error',
+        message: 'Blog not found',
+        debug: {
+          slugOrId,
+          searchType: isObjectId ? 'ID' : 'slug',
+          publishedOnly,
+          filter
+        }
+      });
+      return;
+    }
+
+    console.log(`✅ Blog found by ${isObjectId ? 'ID' : 'slug'}: "${blog.title}" (ID: ${blog._id})`);
+    res.json({
+      status: 'success',
+      data: { blog }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching blog by slug/ID:', error);
+    console.error('SlugOrId:', req.params.slugOrId);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch blog',
+      debug: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
+
 // POST /api/v1/blogs - Create new blog
 router.post('/', upload.single('image'),blogValidation, async (req: Request, res: Response): Promise<void> => {
   // Add at the top of your POST route
@@ -314,24 +303,6 @@ if (!errors.isEmpty()) {
     }
     console.log(" Saving to database...");
     
-    // Generate excerpt if not provided
-    // const excerpt = req.body.excerpt || (content ? content.substring(0, 200) + '...' : 'No excerpt available');
-
-    // let parsedTags = [];
-    // let parsedPublished = false;
-    // try {
-    //   parsedTags = tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [];
-    // } catch (e) {
-    //   console.log('Tags parsing failed, using empty array');
-    //   parsedTags = [];
-    // }
-    // try {
-    //   parsedPublished = published ? (typeof published === 'string' ? JSON.parse(published) : published) : false;
-    // } catch (e) {
-    //   console.log('published parsed failed, using false');
-    //   parsedPublished = false;
-    // }
-
     const blog = new Blog({
       title,
       content,
