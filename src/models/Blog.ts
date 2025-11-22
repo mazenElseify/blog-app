@@ -43,7 +43,7 @@ const blogSchema = new Schema<IBlog>({
   }],
   published: {
     type: Boolean,
-    default: false
+    default: true
   },
   publishedAt: {
     type: Date,
