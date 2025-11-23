@@ -310,7 +310,7 @@ if (!errors.isEmpty()) {
       image: imageUrl,
       excerpt: content ? content.substring(0,200) + '...' : '',
       tags: [],
-      published: false
+      published: true
     });
     const savedBlog = await blog.save();
     console.log('✅ Blog saved:', savedBlog._id);
