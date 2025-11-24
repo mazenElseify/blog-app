@@ -44,6 +44,7 @@ export default async function handler( req: VercelRequest, res: VercelResponse) 
       'http://localhost:3001',
       'http://localhost:8080',
       'https://blog-app-amber-three.vercel.app',
+      
       process.env.CORS_ORIGIN,
       process.env.FRONTEND_URL
     ].filter(Boolean);
